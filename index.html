@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가계부</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">가계부<span>My Budget</span></div>
+    <div class="sidebar-nav">
+      <button class="nav-item active" onclick="showPage('list')" id="nav-list">
+        <span class="nav-icon">📋</span> 내역
+      </button>
+      <button class="nav-item" onclick="showPage('add')" id="nav-add">
+        <span class="nav-icon">＋</span> 추가
+      </button>
+      <button class="nav-item" onclick="showPage('stats')" id="nav-stats">
+        <span class="nav-icon">📊</span> 통계
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Period bar -->
+    <div id="period-bar">
+      <div class="topbar">
+        <div class="page-title" id="page-title">내역</div>
+        <div class="period-controls">
+          <div class="period-seg">
+            <button class="pseg-btn active" onclick="setPeriodMode('week')">주간</button>
+            <button class="pseg-btn" onclick="setPeriodMode('month')">월간</button>
+            <button class="pseg-btn" onclick="setPeriodMode('custom')">직접설정</button>
+          </div>
+          <div id="nav-group" style="display:flex;align-items:center;gap:6px">
+            <button class="nav-btn" onclick="navigate(-1)">‹</button>
+            <div class="period-label" id="period-label"></div>
+            <button class="nav-btn" onclick="navigate(1)">›</button>
+          </div>
+          <div class="custom-range" id="custom-group">
+            <input type="date" id="c-from">
+            <span>~</span>
+            <input type="date" id="c-to">
+            <button class="apply-btn" onclick="applyCustom()">적용</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: LIST -->
+    <div id="page-list">
+      <div class="summary-row">
+        <div class="sum-card"><div class="sum-label">기간 수입</div><div class="sum-value income" id="s-income">₩0</div></div>
+        <div class="sum-card"><div class="sum-label">기간 지출</div><div class="sum-value expense" id="s-expense">₩0</div></div>
+        <div class="sum-card"><div class="sum-label">잔액</div><div class="sum-value" id="s-balance">₩0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 거래 내역</div>
+          <div class="filters">
+            <select class="filter-sel" id="fil-type" onchange="renderList()">
+              <option value="all">전체</option>
+              <option value="income">수입</option>
+              <option value="expense">지출</option>
+            </select>
+            <select class="filter-sel" id="fil-cat" onchange="renderList()">
+              <option value="all">전체 카테고리</option>
+              <optgroup label="── 수입">
+                <option>아르바이트</option><option>금융/체크할인</option>
+                <option>생활비</option><option>구독비</option><option>기타 수입</option>
+              </optgroup>
+              <optgroup label="── 지출">
+                <option>식료품비</option><option>외식비</option><option>화장품+잡화</option>
+                <option>생필품</option><option>구독</option><option>교통비</option>
+                <option>유흥</option><option>선물</option><option>기타 비용</option>
+              </optgroup>
+            </select>
+            <select class="filter-sel" id="fil-pay" onchange="renderList()">
+              <option value="all">결제 수단 전체</option>
+              <option>현금</option><option>카드</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>날짜·시간</th><th>구분</th><th>카테고리</th>
+              <th>메모</th><th>결제 수단</th>
+              <th style="text-align:right">금액</th><th></th>
+            </tr></thead>
+            <tbody id="entry-list"></tbody>
+          </table>
+          <div id="empty-msg" class="empty-state hidden">
+            <div class="icon">🗒️</div>
+            이 기간에 내역이 없습니다
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: ADD / EDIT -->
+    <div id="page-add" class="hidden">
+      <div class="topbar"><div class="page-title" id="form-title">새 항목 추가</div></div>
+      <div class="card">
+        <div class="card-body">
+          <div id="edit-banner" class="edit-banner hidden">
+            ✏️ 수정 중인 항목이 있습니다
+          </div>
+          <div class="type-toggle">
+            <button class="type-btn ae" id="btn-expense" onclick="setType('expense')">지출</button>
+            <button class="type-btn" id="btn-income" onclick="setType('income')">수입</button>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>날짜</label><input type="date" id="f-date"></div>
+            <div class="form-group"><label>시간</label><input type="time" id="f-time" value="12:00"></div>
+          </div>
+          <div class="form-grid full">
+            <div class="form-group"><label>카테고리</label><select id="f-cat"></select></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>금액 (원)</label><input type="number" id="f-amount" placeholder="0" min="0"></div>
+            <div class="form-group"><label>결제 수단</label>
+              <select id="f-pay" onchange="toggleCard()">
+                <option>현금</option><option>카드</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid full hidden" id="card-name-wrap">
+            <div class="form-group"><label>카드 이름</label><input type="text" id="f-card" placeholder="예: 신한카드, 국민카드"></div>
+          </div>
+          <div class="form-grid full">
+            <div class="form-group"><label>메모 (선택)</label><input type="text" id="f-memo" placeholder="간단한 메모"></div>
+          </div>
+          <button class="submit-btn" id="submit-btn" onclick="submitEntry()">추가하기</button>
+          <button class="cancel-btn hidden" id="cancel-btn" onclick="cancelEdit()">취소</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: STATS -->
+    <div id="page-stats" class="hidden">
+      <div class="summary-row">
+        <div class="sum-card"><div class="sum-label">기간 수입</div><div class="sum-value income" id="st-income">₩0</div></div>
+        <div class="sum-card"><div class="sum-label">기간 지출</div><div class="sum-value expense" id="st-expense">₩0</div></div>
+        <div class="sum-card"><div class="sum-label">순수입</div><div class="sum-value" id="st-net">₩0</div></div>
+      </div>
+      <div class="stats-seg">
+        <button class="sseg active" onclick="setStatView('expense')">지출 분석</button>
+        <button class="sseg" onclick="setStatView('income')">수입 분석</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title" id="stat-cat-title">📊 카테고리별 지출</div></div>
+        <div class="card-body"><div class="cat-bars" id="cat-chart"><div class="no-data">지출 내역이 없습니다</div></div></div>
+      </div>
+      <div class="card" id="payment-card">
+        <div class="card-header"><div class="card-title">💳 결제 수단별 지출</div></div>
+        <div class="card-body">
+          <div class="pay-grid">
+            <div class="pay-box"><div class="pay-box-title">현금</div><div id="pay-cash"><span class="no-data">내역 없음</span></div></div>
+            <div class="pay-box"><div class="pay-box-title">카드</div><div id="pay-card"><span class="no-data">내역 없음</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
